@@ -59,3 +59,13 @@ Contributors
 * Mark Galloway
 * Abram Hindle
 * Cole Mackenzie
+
+Code contains contributions from:
+* Zhi Li
+
+
+References
+============
+https://github.com/abramhindle/WebSocketsExamples/blob/master/chat.py
+https://github.com/abramhindle/WebSocketsExamples/blob/master/static/chat.html
+https://codepen.io/anon/pen/QovKPY

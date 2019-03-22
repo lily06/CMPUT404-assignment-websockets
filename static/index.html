@@ -47,8 +47,8 @@ world = {};
 //XXX: TODO Make this prettier!
 function drawCircle(context,entity) {
     with(context) {
-        beginPath();                
-        lineWidth = 3;
+        beginPath();              
+        // lineWidth = 3;
         var x = entity["x"];
         var y = entity["y"];
         //moveTo(x,y);
@@ -56,6 +56,10 @@ function drawCircle(context,entity) {
         strokeStyle = fillStyle;
         arc(x, y, (entity["radius"])?entity["radius"]:50, 0, 2.0 * Math.PI, false);  
         stroke();                                
+        lineJoin = 'round';
+        context.lineCap = 'round';
+        globalAlpha = entity["opacity"];
+        fill();
     }
 }
 
@@ -123,8 +127,12 @@ function getPosition(e) {
 
 function addEntity(entity, data) {
     world[entity] = data;
-    drawNextFrame(); // (but should we?)
     //XXX: Send a XHTML Request that updates the entity you just modified!
+    newData = {};
+    newData[entity] = data;
+    socket.send(JSON.stringify(newData));
+    drawNextFrame();
+    
 }
 var counter = 0;
 function addEntityWithoutName(data) {
@@ -231,18 +239,23 @@ mouse = (function() {
 // Add the application specific mouse listeners!
 //XXX: TODO Make these prettier!
 mouse.mousedowners.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'blue'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'blue','opacity': 1});
 });
 
 mouse.mouseuppers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'red'});
+    addEntityWithoutName({'x':x,'y':y,'colour':'red','opacity': 1});
 });
 
 mouse.mousedraggers.push(function(x,y,clicked,e) {
-    addEntityWithoutName({'x':x,'y':y,'colour':'green',
-                          'radius':10});
+    addEntityWithoutName({'x':x,'y':y,'opacity': Math.random(),
+                        'colour': ('rgb('+getRandomInt(73,100)+','+getRandomInt(200,230)+','+getRandomInt(100,205)+')'),
+                        'radius': getRandomInt(10, 30)
+                      });
 });
 
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 function update() {
     drawFrame();
@@ -254,6 +267,22 @@ function wsSetup() {
     socket = new WebSocket(url);
     socket.onopen = function() {
         //XXX: TODO What are you going to do here?
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', 'http://'+host+'/world');
+        xhr.onreadystatechange = function () {
+            if ( this.readyState === 4 && this.status === 200 ) {
+                try{
+                    var newWorld = JSON.parse(xhr.responseText);
+                    for (var key in newWorld) {
+                        world[key] = newWorld[key]
+                    }
+                    drawNextFrame();
+                } catch(e) { 
+                        alert('Error: ' + e.name);
+                }
+            }
+        }
+        xhr.send();
     };
     socket.onerror = function(msg) {
         debug("WebSocket Error:" + msg.data);
@@ -262,6 +291,16 @@ function wsSetup() {
         try {
             debug("WebSocket Recv:" + msg.data);
             //XXX: TODO What are you going to do here?            
+            let newWorld = JSON.parse(msg.data);
+            if (msg.data === "{}"){
+                world = {}
+            }
+            else{
+                for (let key in newWorld) {
+                    world[key] = newWorld[key];
+                }
+            }
+            drawNextFrame();
         } catch (e) {
             alert("socket on message: " + e);
         }
